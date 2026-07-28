@@ -799,7 +799,14 @@ fun SearchScreen(
                                 is Map<*, *> -> {
                                     for (problem in machineData.keys) {
                                         val problemName = problem.toString()
-                                        if (problemName.lowercase().contains(lowerQuery)) {
+                                        val steps = (machineData[problem] as? List<*>) ?: emptyList<Any?>()
+
+                                        val problemMatches = problemName.lowercase().contains(lowerQuery)
+                                        val stepMatches = steps.any { step ->
+                                            step.toString().lowercase().contains(lowerQuery)
+                                        }
+
+                                        if (problemMatches || stepMatches) {
                                             results.add(
                                                 SearchResult(
                                                     role = role,
@@ -903,7 +910,7 @@ fun SearchScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("🔍 Поиск по неисправностям...") },
+                placeholder = { Text("🔍 Поиск по неисправностям и решениям...") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {})
@@ -937,7 +944,6 @@ fun SearchScreen(
         }
     }
 }
-
 // ============================================================
 // 9. КЛАСС ДЛЯ РЕЗУЛЬТАТОВ ПОИСКА
 // ============================================================
