@@ -281,11 +281,9 @@ class MainActivity : ComponentActivity() {
 // ============================================================
 sealed class Screen {
     object Main : Screen()
-    object Role : Screen()
     object Category : Screen()
     object Machine : Screen()
     object Problem : Screen()
-
     object Search : Screen()
 }
 
@@ -295,12 +293,11 @@ sealed class Screen {
 @Composable
 fun NavigationApp() {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Main) }
-    var selectedRole by remember { mutableStateOf("") }
+    var selectedRole by remember { mutableStateOf("🔧 Механики") }
     var selectedCategory by remember { mutableStateOf("") }
     var selectedMachine by remember { mutableStateOf("") }
     var selectedProblem by remember { mutableStateOf("") }
 
-    // Функция для перехода к инструкции из результатов поиска
     fun navigateToProblem(role: String, category: String, machine: String, problem: String) {
         selectedRole = role
         selectedCategory = category
@@ -311,22 +308,13 @@ fun NavigationApp() {
 
     when (currentScreen) {
         is Screen.Main -> MainScreen(
-            onRoleClick = { role ->
-                selectedRole = role
-                currentScreen = Screen.Role
-            },
-            onSearchClick = {
-                currentScreen = Screen.Search
-            }
-        )
-        is Screen.Role -> RoleScreen(
-            roleName = selectedRole,
             onCategoryClick = { category ->
                 selectedCategory = category
                 currentScreen = Screen.Category
             },
-            onBack = { currentScreen = Screen.Main },
-            onHome = { currentScreen = Screen.Main }
+            onSearchClick = {
+                currentScreen = Screen.Search
+            }
         )
         is Screen.Category -> CategoryScreen(
             categoryName = selectedCategory,
@@ -335,7 +323,7 @@ fun NavigationApp() {
                 selectedMachine = machine
                 currentScreen = Screen.Machine
             },
-            onBack = { currentScreen = Screen.Role },
+            onBack = { currentScreen = Screen.Main },
             onHome = { currentScreen = Screen.Main }
         )
         is Screen.Machine -> MachineScreen(
@@ -367,14 +355,22 @@ fun NavigationApp() {
 }
 
 // ============================================================
-// 4. ГЛАВНЫЙ ЭКРАН
+// 4. ГЛАВНЫЙ ЭКРАН (СПИСОК РАЗДЕЛОВ)
 // ============================================================
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun MainScreen(
-    onRoleClick: (String) -> Unit,
+    onCategoryClick: (String) -> Unit,
     onSearchClick: () -> Unit
 ) {
+    val categories = factoryData["🔧 Механики"] ?: emptyMap()
+    var searchQuery by remember { mutableStateOf("") }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    val filteredCategories = categories.keys.filter {
+        it.contains(searchQuery, ignoreCase = true)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -394,73 +390,18 @@ fun MainScreen(
                             color = MaterialTheme.colorScheme.secondaryContainer,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
+                        Text(
+                            text = "Разделы",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
                     }
                 },
                 actions = {
                     IconButton(onClick = onSearchClick) {
                         Icon(Icons.Filled.Search, contentDescription = "Поиск")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                LazyColumn {
-                    items(factoryData.keys.toList()) { role ->
-                        Button(
-                            onClick = { onRoleClick(role) },
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
-                            )
-                        ) {
-                            Text(text = role, fontSize = 18.sp, modifier = Modifier.padding(8.dp))
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ============================================================
-// 5. ЭКРАН ВЫБОРА КАТЕГОРИИ
-// ============================================================
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
-@Composable
-fun RoleScreen(
-    roleName: String,
-    onCategoryClick: (String) -> Unit,
-    onBack: () -> Unit,
-    onHome: () -> Unit
-) {
-    val categories = factoryData[roleName] ?: emptyMap()
-    var searchQuery by remember { mutableStateOf("") }
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    val filteredCategories = categories.keys.filter {
-        it.contains(searchQuery, ignoreCase = true)
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(roleName) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onHome) {
-                        Icon(Icons.Filled.Home, contentDescription = "На главную")
                     }
                 }
             )
@@ -476,7 +417,7 @@ fun RoleScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("🔍 Поиск категории...") },
+                placeholder = { Text("🔍 Поиск раздела...") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
@@ -490,7 +431,9 @@ fun RoleScreen(
                 items(filteredCategories) { category ->
                     Button(
                         onClick = { onCategoryClick(category) },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer
                         )
@@ -504,7 +447,7 @@ fun RoleScreen(
 }
 
 // ============================================================
-// 6. ЭКРАН СПИСКА МАШИН (С ПОИСКОМ)
+// 5. ЭКРАН СПИСКА МАШИН
 // ============================================================
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -517,21 +460,47 @@ fun CategoryScreen(
 ) {
     val roleData = factoryData[roleName] ?: emptyMap()
     val categoryData = roleData[categoryName]
-    val allMachines = if (categoryData is Map<*, *>) {
-        categoryData.keys.toList()
-    } else emptyList()
+    val items = if (categoryData is Map<*, *>) {
+        categoryData.keys.map { it.toString() }
+    } else {
+        emptyList()
+    }
 
     var searchQuery by remember { mutableStateOf("") }
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    val filteredMachines = allMachines.filter {
+    val filteredItems = items.filter {
         it.contains(searchQuery, ignoreCase = true)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(categoryName) },
+                title = {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "🏭 ООО \"ППП\"",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Text(
+                            text = "Справочник механика",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Text(
+                            text = categoryName,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -555,7 +524,7 @@ fun CategoryScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("🔍 Поиск...") },
+                placeholder = { Text("🔍 Поиск машины...") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
@@ -566,15 +535,17 @@ fun CategoryScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             LazyColumn {
-                items(filteredMachines) { machine ->
+                items(filteredItems) { item ->
                     Button(
-                        onClick = { onMachineClick(machine) },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        onClick = { onMachineClick(item) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer
                         )
                     ) {
-                        Text(text = machine, fontSize = 16.sp, modifier = Modifier.padding(8.dp))
+                        Text(text = item, fontSize = 16.sp, modifier = Modifier.padding(8.dp))
                     }
                 }
             }
@@ -583,7 +554,7 @@ fun CategoryScreen(
 }
 
 // ============================================================
-// 7. ЭКРАН СПИСКА ПРОБЛЕМ
+// 6. ЭКРАН СПИСКА ПРОБЛЕМ
 // ============================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -610,7 +581,31 @@ fun MachineScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(machineName) },
+                title = {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "🏭 ООО \"ППП\"",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Text(
+                            text = "Справочник механика",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Text(
+                            text = machineName,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -640,7 +635,9 @@ fun MachineScreen(
                 items(problemList) { problem ->
                     Button(
                         onClick = { onProblemClick(problem) },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.tertiaryContainer
                         )
@@ -654,7 +651,7 @@ fun MachineScreen(
 }
 
 // ============================================================
-// 8. ЭКРАН ИНСТРУКЦИИ
+// 7. ЭКРАН ИНСТРУКЦИИ
 // ============================================================
 @Suppress("UNCHECKED_CAST")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -685,7 +682,31 @@ fun ProblemScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(problemName) },
+                title = {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "🏭 ООО \"ППП\"",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Text(
+                            text = "Справочник механика",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Text(
+                            text = problemName,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -745,7 +766,7 @@ fun ProblemScreen(
 }
 
 // ============================================================
-// 9. ЭКРАН ПОИСКА
+// 8. ЭКРАН ПОИСКА
 // ============================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -778,10 +799,7 @@ fun SearchScreen(
                                 is Map<*, *> -> {
                                     for (problem in machineData.keys) {
                                         val problemName = problem.toString()
-                                        if (problemName.lowercase().contains(lowerQuery) ||
-                                            machineName.lowercase().contains(lowerQuery) ||
-                                            category.lowercase().contains(lowerQuery)
-                                        ) {
+                                        if (problemName.lowercase().contains(lowerQuery)) {
                                             results.add(
                                                 SearchResult(
                                                     role = role,
@@ -796,10 +814,7 @@ fun SearchScreen(
                                 is List<*> -> {
                                     for (item in machineData) {
                                         val itemName = item.toString()
-                                        if (itemName.lowercase().contains(lowerQuery) ||
-                                            machineName.lowercase().contains(lowerQuery) ||
-                                            category.lowercase().contains(lowerQuery)
-                                        ) {
+                                        if (itemName.lowercase().contains(lowerQuery)) {
                                             results.add(
                                                 SearchResult(
                                                     role = role,
@@ -818,9 +833,7 @@ fun SearchScreen(
                     is List<*> -> {
                         for (item in categoryData) {
                             val itemName = item.toString()
-                            if (itemName.lowercase().contains(lowerQuery) ||
-                                category.lowercase().contains(lowerQuery)
-                            ) {
+                            if (itemName.lowercase().contains(lowerQuery)) {
                                 results.add(
                                     SearchResult(
                                         role = role,
@@ -847,7 +860,31 @@ fun SearchScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("🔍 Поиск") },
+                title = {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "🏭 ООО \"ППП\"",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Text(
+                            text = "Справочник механика",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Text(
+                            text = "Поиск",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
@@ -866,7 +903,7 @@ fun SearchScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("🔍 Поиск по проблемам, машинам...") },
+                placeholder = { Text("🔍 Поиск по неисправностям...") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {})
@@ -902,7 +939,7 @@ fun SearchScreen(
 }
 
 // ============================================================
-// 10. КЛАСС ДЛЯ РЕЗУЛЬТАТОВ ПОИСКА
+// 9. КЛАСС ДЛЯ РЕЗУЛЬТАТОВ ПОИСКА
 // ============================================================
 data class SearchResult(
     val role: String,
@@ -912,7 +949,7 @@ data class SearchResult(
 )
 
 // ============================================================
-// 11. КАРТОЧКА РЕЗУЛЬТАТА ПОИСКА
+// 10. КАРТОЧКА РЕЗУЛЬТАТА ПОИСКА
 // ============================================================
 @Composable
 fun SearchResultCard(
