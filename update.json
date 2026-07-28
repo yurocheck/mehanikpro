@@ -1,5 +1,5 @@
 {
-  "latestVersion": 2,
-  "apkUrl": "https://github.com/yurocheck/mehanikpro/releases/download/v1.0.1/app-release.apk",
-  "changelog": "🔧 Что нового:\n• Исправлена навигация (кнопка 'Назад')\n• Обновлён поиск (только по неисправностям)\n• Добавлен заголовок на все экраны"
+  "latestVersion": 3,
+  "apkUrl": "https://github.com/yurocheck/mehanikpro/releases/download/v1.0.2/app-release.apk",
+  "changelog": "🔧 Что нового:\n• Поиск теперь ищет по шагам инструкций\n• Исправлены мелкие ошибки"
 }
