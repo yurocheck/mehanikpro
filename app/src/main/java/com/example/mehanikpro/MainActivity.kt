@@ -1,5 +1,6 @@
 package com.example.mehanikpro
 
+import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.app.DownloadManager
 import android.content.BroadcastReceiver
@@ -42,6 +43,8 @@ import java.io.File
 import java.io.InputStreamReader
 import java.net.URL
 import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+
 
 class MainActivity : ComponentActivity() {
 
@@ -60,6 +63,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        checkForUpdate() // Проверка обновлений
 
         // Регистрируем BroadcastReceiver через LocalBroadcastManager
         LocalBroadcastManager.getInstance(this).registerReceiver(
@@ -67,8 +71,6 @@ class MainActivity : ComponentActivity() {
             IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
         )
 
-        // Проверка обновлений
-        checkForUpdate()
 
         setContent {
             MechanicAppTheme {
@@ -139,39 +141,46 @@ class MainActivity : ComponentActivity() {
     // ПРОВЕРКА ОБНОВЛЕНИЙ (возвращает пару (apkUrl, changelog) или null)
     // ============================================================
     private suspend fun checkForUpdateCompose(): Pair<String, String>? {
-        return try {
-            val url = URL("https://raw.githubusercontent.com/yurocheck/mehanikpro/main/update.json")
-            val connection = url.openConnection()
-            connection.connectTimeout = 5000
-            connection.readTimeout = 5000
+        return withContext(Dispatchers.IO) {
+            try {
+                val url = URL("https://raw.githubusercontent.com/yurocheck/mehanikpro/main/update.json")
+                val connection = url.openConnection()
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
 
-            val reader = BufferedReader(InputStreamReader(connection.getInputStream()))
-            val jsonString = reader.readText()
-            reader.close()
+                val reader = BufferedReader(InputStreamReader(connection.getInputStream()))
+                val jsonString = reader.readText()
+                reader.close()
 
-            val latestVersion = jsonString
-                .substringAfter("\"latestVersion\":")
-                .substringBefore(",")
-                .trim()
-                .toIntOrNull() ?: 0
+                val latestVersion = jsonString
+                    .substringAfter("\"latestVersion\":")
+                    .substringBefore(",")
+                    .trim()
+                    .toIntOrNull() ?: 0
 
-            val apkUrl = jsonString
-                .substringAfter("\"apkUrl\":\"")
-                .substringBefore("\"")
+                val apkUrl = jsonString
+                    .substringAfter("\"apkUrl\":\"")
+                    .substringBefore("\"")
 
-            val changelog = jsonString
-                .substringAfter("\"changelog\":\"")
-                .substringBefore("\"")
+                val changelog = jsonString
+                    .substringAfter("\"changelog\":\"")
+                    .substringBefore("\"")
 
-            val currentVersion = packageManager.getPackageInfo(packageName, 0).versionCode
+                val currentVersion = packageManager.getPackageInfo(packageName, 0).versionCode
 
-            if (latestVersion > currentVersion && apkUrl.isNotEmpty()) {
-                Pair(apkUrl, changelog)
-            } else {
+                Log.d("MehanikPRO", "latestVersion=$latestVersion, currentVersion=$currentVersion")
+
+                if (latestVersion > currentVersion && apkUrl.isNotEmpty()) {
+                    Log.d("MehanikPRO", "!! НАЙДЕНО ОБНОВЛЕНИЕ !! Версия $latestVersion")
+                    Pair(apkUrl, changelog)
+                } else {
+                    Log.d("MehanikPRO", "Нет обновлений. latest=$latestVersion, current=$currentVersion")
+                    null
+                }
+            } catch (e: Exception) {
+                Log.e("MehanikPRO", "ОШИБКА проверки обновлений", e)
                 null
             }
-        } catch (e: Exception) {
-            null
         }
     }
 
@@ -179,6 +188,7 @@ class MainActivity : ComponentActivity() {
     // ПРОВЕРКА ОБНОВЛЕНИЙ (для обратной совместимости)
     // ============================================================
     private fun checkForUpdate() {
+        Log.d("MehanikPRO", "=== ПРОВЕРКА ОБНОВЛЕНИЙ ЗАПУЩЕНА ===")
         CoroutineScope(Dispatchers.IO).launch {
             val result = checkForUpdateCompose()
             // результат обрабатывается в Compose через LaunchedEffect
