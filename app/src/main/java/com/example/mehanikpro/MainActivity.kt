@@ -323,6 +323,12 @@ fun NavigationApp() {
                 selectedMachine = machine
                 currentScreen = Screen.Machine
             },
+            onProblemClick = { category, machine, problem ->
+                selectedCategory = category
+                selectedMachine = machine
+                selectedProblem = problem
+                currentScreen = Screen.Problem
+            },
             onBack = { currentScreen = Screen.Main },
             onHome = { currentScreen = Screen.Main }
         )
@@ -364,12 +370,6 @@ fun MainScreen(
     onSearchClick: () -> Unit
 ) {
     val categories = factoryData["🔧 Механики"] ?: emptyMap()
-    var searchQuery by remember { mutableStateOf("") }
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    val filteredCategories = categories.keys.filter {
-        it.contains(searchQuery, ignoreCase = true)
-    }
 
     Scaffold(
         topBar = {
@@ -413,22 +413,8 @@ fun MainScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("🔍 Поиск раздела...") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = {
-                    keyboardController?.hide()
-                })
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             LazyColumn {
-                items(filteredCategories) { category ->
+                items(categories.keys.toList()) { category ->
                     Button(
                         onClick = { onCategoryClick(category) },
                         modifier = Modifier
@@ -447,7 +433,7 @@ fun MainScreen(
 }
 
 // ============================================================
-// 5. ЭКРАН СПИСКА МАШИН
+// 5. ЭКРАН СПИСКА МАШИН (С ПОИСКОМ ПО НЕИСПРАВНОСТЯМ)
 // ============================================================
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -455,6 +441,7 @@ fun CategoryScreen(
     categoryName: String,
     roleName: String,
     onMachineClick: (String) -> Unit,
+    onProblemClick: (String, String, String) -> Unit,
     onBack: () -> Unit,
     onHome: () -> Unit
 ) {
@@ -468,9 +455,91 @@ fun CategoryScreen(
 
     var searchQuery by remember { mutableStateOf("") }
     val keyboardController = LocalSoftwareKeyboardController.current
+    var searchResults by remember { mutableStateOf<List<SearchResult>>(emptyList()) }
 
-    val filteredItems = items.filter {
-        it.contains(searchQuery, ignoreCase = true)
+    fun performSearch(query: String) {
+        if (query.isBlank()) {
+            searchResults = emptyList()
+            return
+        }
+
+        val results = mutableListOf<SearchResult>()
+        val lowerQuery = query.lowercase()
+
+        for (role in factoryData.keys) {
+            val roleData = factoryData[role] ?: continue
+            for (category in roleData.keys) {
+                val categoryData = roleData[category]
+                when (categoryData) {
+                    is Map<*, *> -> {
+                        for (machine in categoryData.keys) {
+                            val machineName = machine.toString()
+                            val machineData = categoryData[machine]
+                            when (machineData) {
+                                is Map<*, *> -> {
+                                    for (problem in machineData.keys) {
+                                        val problemName = problem.toString()
+                                        val steps = (machineData[problem] as? List<*>) ?: emptyList<Any?>()
+                                        val problemMatches = problemName.lowercase().contains(lowerQuery)
+                                        val stepMatches = steps.any { step ->
+                                            step.toString().lowercase().contains(lowerQuery)
+                                        }
+                                        if (problemMatches || stepMatches) {
+                                            results.add(
+                                                SearchResult(
+                                                    role = role,
+                                                    category = category,
+                                                    machine = machineName,
+                                                    problem = problemName
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                                is List<*> -> {
+                                    for (item in machineData) {
+                                        val itemName = item.toString()
+                                        if (itemName.lowercase().contains(lowerQuery)) {
+                                            results.add(
+                                                SearchResult(
+                                                    role = role,
+                                                    category = category,
+                                                    machine = machineName,
+                                                    problem = itemName
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                                else -> {}
+                            }
+                        }
+                    }
+                    is List<*> -> {
+                        for (item in categoryData) {
+                            val itemName = item.toString()
+                            if (itemName.lowercase().contains(lowerQuery)) {
+                                results.add(
+                                    SearchResult(
+                                        role = role,
+                                        category = category,
+                                        machine = "",
+                                        problem = itemName
+                                    )
+                                )
+                            }
+                        }
+                    }
+                    else -> {}
+                }
+            }
+        }
+
+        searchResults = results
+    }
+
+    LaunchedEffect(searchQuery) {
+        performSearch(searchQuery)
     }
 
     Scaffold(
@@ -524,7 +593,7 @@ fun CategoryScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("🔍 Поиск машины...") },
+                placeholder = { Text("🔍 Поиск по неисправностям...") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {
@@ -534,18 +603,39 @@ fun CategoryScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            LazyColumn {
-                items(filteredItems) { item ->
-                    Button(
-                        onClick = { onMachineClick(item) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
-                        )
-                    ) {
-                        Text(text = item, fontSize = 16.sp, modifier = Modifier.padding(8.dp))
+            if (searchQuery.isNotBlank()) {
+                if (searchResults.isEmpty()) {
+                    Text(
+                        text = "😕 Ничего не найдено",
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                } else {
+                    LazyColumn {
+                        items(searchResults) { result ->
+                            SearchResultCard(
+                                result = result,
+                                onClick = {
+                                    onProblemClick(result.category, result.machine, result.problem)
+                                }
+                            )
+                        }
+                    }
+                }
+            } else {
+                LazyColumn {
+                    items(items) { item ->
+                        Button(
+                            onClick = { onMachineClick(item) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        ) {
+                            Text(text = item, fontSize = 16.sp, modifier = Modifier.padding(8.dp))
+                        }
                     }
                 }
             }
@@ -766,7 +856,7 @@ fun ProblemScreen(
 }
 
 // ============================================================
-// 8. ЭКРАН ПОИСКА
+// 8. ЭКРАН ПОИСКА (ОТДЕЛЬНЫЙ ЭКРАН)
 // ============================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -800,12 +890,10 @@ fun SearchScreen(
                                     for (problem in machineData.keys) {
                                         val problemName = problem.toString()
                                         val steps = (machineData[problem] as? List<*>) ?: emptyList<Any?>()
-
                                         val problemMatches = problemName.lowercase().contains(lowerQuery)
                                         val stepMatches = steps.any { step ->
                                             step.toString().lowercase().contains(lowerQuery)
                                         }
-
                                         if (problemMatches || stepMatches) {
                                             results.add(
                                                 SearchResult(
@@ -910,7 +998,7 @@ fun SearchScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("🔍 Поиск по неисправностям и решениям...") },
+                placeholder = { Text("🔍 Поиск по неисправностям...") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = {})
@@ -944,6 +1032,7 @@ fun SearchScreen(
         }
     }
 }
+
 // ============================================================
 // 9. КЛАСС ДЛЯ РЕЗУЛЬТАТОВ ПОИСКА
 // ============================================================
