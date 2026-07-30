@@ -216,7 +216,8 @@ class MainActivity : ComponentActivity() {
                 setTitle("Обновление справочника механика")
                 setDescription("Скачивание новой версии...")
                 // Сохраняем в папку Download
-                setDestinationInExternalPublicDir(
+                setDestinationInExternalFilesDir(
+                    this@MainActivity,
                     Environment.DIRECTORY_DOWNLOADS,
                     "mehanikpro-update.apk"
                 )
@@ -249,7 +250,7 @@ class MainActivity : ComponentActivity() {
     private fun installApk() {
         try {
             val apkFile = File(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
                 "mehanikpro-update.apk"
             )
 
