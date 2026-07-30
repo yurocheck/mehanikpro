@@ -43,8 +43,6 @@ import java.io.File
 import java.io.InputStreamReader
 import java.net.URL
 import kotlinx.coroutines.*
-import kotlinx.coroutines.Dispatchers
-
 
 class MainActivity : ComponentActivity() {
 
@@ -63,7 +61,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        checkForUpdate() // Проверка обновлений
 
         // Регистрируем BroadcastReceiver через LocalBroadcastManager
         LocalBroadcastManager.getInstance(this).registerReceiver(
@@ -71,6 +68,8 @@ class MainActivity : ComponentActivity() {
             IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
         )
 
+        // Проверка обновлений
+        checkForUpdate()
 
         setContent {
             MechanicAppTheme {
@@ -240,6 +239,7 @@ class MainActivity : ComponentActivity() {
                 "Ошибка загрузки: ${e.message}",
                 Toast.LENGTH_LONG
             ).show()
+            Log.e("MehanikPRO", "Ошибка загрузки APK", e)
         }
     }
 
@@ -254,7 +254,7 @@ class MainActivity : ComponentActivity() {
             )
 
             if (!apkFile.exists()) {
-                Toast.makeText(this, "Файл обновления не найден", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Файл обновления не найден. Попробуйте снова.", Toast.LENGTH_LONG).show()
                 return
             }
 
