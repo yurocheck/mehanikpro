@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.widget.Toast
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
@@ -142,6 +143,7 @@ class MainActivity : ComponentActivity() {
     private suspend fun checkForUpdateCompose(): Pair<String, String>? {
         return withContext(Dispatchers.IO) {
             try {
+                Log.d("MehanikPRO", "Проверка обновлений: начало")
                 val url = URL("https://raw.githubusercontent.com/yurocheck/mehanikpro/main/update.json")
                 val connection = url.openConnection()
                 connection.connectTimeout = 5000
@@ -167,12 +169,17 @@ class MainActivity : ComponentActivity() {
 
                 val currentVersion = packageManager.getPackageInfo(packageName, 0).versionCode
 
+                Log.d("MehanikPRO", "latestVersion=$latestVersion, currentVersion=$currentVersion")
+
                 if (latestVersion > currentVersion && apkUrl.isNotEmpty()) {
+                    Log.d("MehanikPRO", "Найдено обновление!")
                     Pair(apkUrl, changelog)
                 } else {
+                    Log.d("MehanikPRO", "Нет обновлений")
                     null
                 }
             } catch (e: Exception) {
+                Log.e("MehanikPRO", "Ошибка проверки обновлений", e)
                 null
             }
         }
@@ -182,6 +189,7 @@ class MainActivity : ComponentActivity() {
     // ПРОВЕРКА ОБНОВЛЕНИЙ (для обратной совместимости)
     // ============================================================
     private fun checkForUpdate() {
+        Log.d("MehanikPRO", "=== ПРОВЕРКА ОБНОВЛЕНИЙ ЗАПУЩЕНА ===")
         CoroutineScope(Dispatchers.IO).launch {
             val result = checkForUpdateCompose()
             // результат обрабатывается в Compose через LaunchedEffect
@@ -194,14 +202,36 @@ class MainActivity : ComponentActivity() {
     private fun downloadApk(apkUrl: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                Log.d("MehanikPRO", "1. Начинаем скачивание APK")
+                Log.d("MehanikPRO", "2. Ссылка: $apkUrl")
+
                 val apkFile = File(getExternalFilesDir(null), "mehanikpro-update.apk")
+                Log.d("MehanikPRO", "3. Путь для сохранения: ${apkFile.absolutePath}")
 
                 // Скачиваем файл
-                URL(apkUrl).openStream().use { input ->
+                Log.d("MehanikPRO", "4. Открываем поток для скачивания...")
+                val connection = URL(apkUrl).openConnection()
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+                Log.d("MehanikPRO", "5. Соединение установлено. Начинаем чтение...")
+
+                connection.getInputStream().use { input ->
                     FileOutputStream(apkFile).use { output ->
-                        input.copyTo(output)
+                        val buffer = ByteArray(4096)
+                        var bytesRead: Int
+                        var totalBytes = 0
+                        while (input.read(buffer).also { bytesRead = it } != -1) {
+                            output.write(buffer, 0, bytesRead)
+                            totalBytes += bytesRead
+                            if (totalBytes % (1024 * 100) == 0) { // Лог каждые 100 КБ
+                                Log.d("MehanikPRO", "6. Скачано: ${totalBytes / 1024} КБ")
+                            }
+                        }
+                        Log.d("MehanikPRO", "7. Скачивание завершено! Всего: ${totalBytes / 1024} КБ")
                     }
                 }
+
+                Log.d("MehanikPRO", "8. Файл сохранён: ${apkFile.exists()}, размер: ${apkFile.length() / 1024} КБ")
 
                 // Если дошли сюда — файл скачался
                 withContext(Dispatchers.Main) {
@@ -213,10 +243,11 @@ class MainActivity : ComponentActivity() {
                     installApk(apkFile)
                 }
             } catch (e: Exception) {
+                Log.e("MehanikPRO", "ОШИБКА загрузки:", e)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(
                         this@MainActivity,
-                        "Ошибка загрузки: ${e.message}",
+                        "Ошибка: ${e.message}",
                         Toast.LENGTH_LONG
                     ).show()
                 }
