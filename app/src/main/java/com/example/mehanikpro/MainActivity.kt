@@ -1,6 +1,5 @@
 package com.example.mehanikpro
 
-import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.app.DownloadManager
 import android.content.BroadcastReceiver
@@ -40,21 +39,22 @@ import androidx.core.content.FileProvider
 import com.example.mehanikpro.ui.theme.MechanicAppTheme
 import java.io.BufferedReader
 import java.io.File
+import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.net.URL
 import kotlinx.coroutines.*
 
 class MainActivity : ComponentActivity() {
 
-    // ID загрузки для DownloadManager
+    // ID загрузки для DownloadManager (уже не используется, но оставляем для совместимости)
     private var downloadId: Long = -1
 
-    // BroadcastReceiver для отслеживания завершения загрузки
+    // BroadcastReceiver для отслеживания завершения загрузки (уже не используется, но оставляем)
     private val downloadReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
             if (id == downloadId) {
-                installApk()
+                // Устаревший метод, теперь установка происходит через downloadApk
             }
         }
     }
@@ -167,17 +167,12 @@ class MainActivity : ComponentActivity() {
 
                 val currentVersion = packageManager.getPackageInfo(packageName, 0).versionCode
 
-                Log.d("MehanikPRO", "latestVersion=$latestVersion, currentVersion=$currentVersion")
-
                 if (latestVersion > currentVersion && apkUrl.isNotEmpty()) {
-                    Log.d("MehanikPRO", "!! НАЙДЕНО ОБНОВЛЕНИЕ !! Версия $latestVersion")
                     Pair(apkUrl, changelog)
                 } else {
-                    Log.d("MehanikPRO", "Нет обновлений. latest=$latestVersion, current=$currentVersion")
                     null
                 }
             } catch (e: Exception) {
-                Log.e("MehanikPRO", "ОШИБКА проверки обновлений", e)
                 null
             }
         }
@@ -187,7 +182,6 @@ class MainActivity : ComponentActivity() {
     // ПРОВЕРКА ОБНОВЛЕНИЙ (для обратной совместимости)
     // ============================================================
     private fun checkForUpdate() {
-        Log.d("MehanikPRO", "=== ПРОВЕРКА ОБНОВЛЕНИЙ ЗАПУЩЕНА ===")
         CoroutineScope(Dispatchers.IO).launch {
             val result = checkForUpdateCompose()
             // результат обрабатывается в Compose через LaunchedEffect
@@ -195,70 +189,46 @@ class MainActivity : ComponentActivity() {
     }
 
     // ============================================================
-    // СКАЧИВАНИЕ APK через DownloadManager
+    // СКАЧИВАНИЕ APK (прямое скачивание через URL)
     // ============================================================
     private fun downloadApk(apkUrl: String) {
-        try {
-            val downloadManager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val apkFile = File(getExternalFilesDir(null), "mehanikpro-update.apk")
 
-            // Создаём URI для скачивания
-            val uri = Uri.parse(apkUrl)
+                // Скачиваем файл
+                URL(apkUrl).openStream().use { input ->
+                    FileOutputStream(apkFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
 
-            // Создаём запрос на скачивание
-            val request = DownloadManager.Request(uri).apply {
-                // Разрешаем скачивание через любую сеть
-                setAllowedNetworkTypes(
-                    DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE
-                )
-                // Запрещаем роуминг
-                setAllowedOverRoaming(false)
-                // Устанавливаем заголовок
-                setTitle("Обновление справочника механика")
-                setDescription("Скачивание новой версии...")
-                // Сохраняем в папку Download
-                setDestinationInExternalFilesDir(
-                    this@MainActivity,
-                    Environment.DIRECTORY_DOWNLOADS,
-                    "mehanikpro-update.apk"
-                )
-                // Показываем уведомление о загрузке
-                setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                // Если дошли сюда — файл скачался
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Файл скачан! Установка...",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    installApk(apkFile)
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Ошибка загрузки: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
-
-            // Запускаем скачивание
-            downloadId = downloadManager.enqueue(request)
-
-            Toast.makeText(
-                this,
-                "Загрузка началась. Уведомление появится в шторке.",
-                Toast.LENGTH_LONG
-            ).show()
-
-        } catch (e: Exception) {
-            Toast.makeText(
-                this,
-                "Ошибка загрузки: ${e.message}",
-                Toast.LENGTH_LONG
-            ).show()
-            Log.e("MehanikPRO", "Ошибка загрузки APK", e)
         }
     }
 
     // ============================================================
-    // УСТАНОВКА APK (вызывается после завершения загрузки)
+    // УСТАНОВКА APK
     // ============================================================
-    private fun installApk() {
+    private fun installApk(apkFile: File) {
         try {
-            val apkFile = File(
-                getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
-                "mehanikpro-update.apk"
-            )
-
-            if (!apkFile.exists()) {
-                Toast.makeText(this, "Файл обновления не найден. Попробуйте снова.", Toast.LENGTH_LONG).show()
-                return
-            }
-
             val intent = Intent(Intent.ACTION_VIEW)
             val apkUri: Uri
 
