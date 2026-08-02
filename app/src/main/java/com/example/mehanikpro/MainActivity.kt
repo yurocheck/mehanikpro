@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import com.example.mehanikpro.ui.theme.MechanicAppTheme
+import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
@@ -153,19 +154,11 @@ class MainActivity : ComponentActivity() {
                 val jsonString = reader.readText()
                 reader.close()
 
-                val latestVersion = jsonString
-                    .substringAfter("\"latestVersion\":")
-                    .substringBefore(",")
-                    .trim()
-                    .toIntOrNull() ?: 0
-
-                val apkUrl = jsonString
-                    .substringAfter("\"apkUrl\":\"")
-                    .substringBefore("\"")
-
-                val changelog = jsonString
-                    .substringAfter("\"changelog\":\"")
-                    .substringBefore("\"")
+                // ✅ ИСПОЛЬЗУЕМ JSONObject ДЛЯ ПАРСИНГА
+                val jsonObject = JSONObject(jsonString)
+                val latestVersion = jsonObject.getInt("latestVersion")
+                val apkUrl = jsonObject.getString("apkUrl")
+                val changelog = jsonObject.getString("changelog")
 
                 val currentVersion = packageManager.getPackageInfo(packageName, 0).versionCode
 
