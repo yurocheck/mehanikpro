@@ -1,5 +1,5 @@
 {
-  "latestVersion": 20,
-  "apkUrl": "https://github.com/yurocheck/mehanikpro/releases/download/v1.0.19/app-release.apk",
-  "changelog": "Тест логов"
+  "latestVersion": 21,
+  "apkUrl": "https://github.com/yurocheck/mehanikpro/releases/download/v1.0.20/app-release.apk",
+  "changelog": "Финальная версия с исправленным парсингом"
 }
