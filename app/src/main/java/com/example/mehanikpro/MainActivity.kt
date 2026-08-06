@@ -45,6 +45,7 @@ import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.net.URL
 import kotlinx.coroutines.*
+import android.provider.Settings
 
 class MainActivity : ComponentActivity() {
 
@@ -249,34 +250,28 @@ class MainActivity : ComponentActivity() {
     }
 
     // ============================================================
-    // УСТАНОВКА APK
+    // УСТАНОВКА APK (ПРОСТОЙ И НАДЁЖНЫЙ СПОСОБ)
     // ============================================================
     private fun installApk(apkFile: File) {
         try {
+            // Просто открываем APK через системный установщик
             val intent = Intent(Intent.ACTION_VIEW)
-            val apkUri: Uri
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                apkUri = FileProvider.getUriForFile(
-                    this,
-                    "${packageName}.fileprovider",
-                    apkFile
-                )
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            } else {
-                apkUri = Uri.fromFile(apkFile)
-            }
-
+            val apkUri = FileProvider.getUriForFile(
+                this,
+                "${packageName}.fileprovider",
+                apkFile
+            )
             intent.setDataAndType(apkUri, "application/vnd.android.package-archive")
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(intent)
-
         } catch (e: Exception) {
             Toast.makeText(
                 this,
                 "Ошибка установки: ${e.message}",
                 Toast.LENGTH_LONG
             ).show()
+            Log.e("MehanikPRO", "Ошибка установки", e)
         }
     }
 }
