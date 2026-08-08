@@ -918,9 +918,11 @@ fun ZoomableImage(
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTransformGestures { _, pan, zoom, _ ->
-                        scale = (scale * zoom).coerceIn(0.5f, 3f)
-                        offsetX += pan.x / scale
-                        offsetY += pan.y / scale
+                        // ✅ Убираем деление на scale — движение становится быстрым и отзывчивым
+                        offsetX += pan.x
+                        offsetY += pan.y
+                        // Зум с ограничениями
+                        scale = (scale * zoom).coerceIn(0.5f, 5f) // Можно увеличить до 5x
                     }
                 }
                 .clickable { onDismiss() }
