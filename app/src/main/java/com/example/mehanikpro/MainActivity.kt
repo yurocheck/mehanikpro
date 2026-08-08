@@ -14,6 +14,7 @@ import android.widget.Toast
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,7 +32,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -741,7 +744,7 @@ fun MachineScreen(
 }
 
 // ============================================================
-// 7. ЭКРАН ИНСТРУКЦИИ
+// 7. ЭКРАН ИНСТРУКЦИИ (С КАРТИНКАМИ)
 // ============================================================
 @Suppress("UNCHECKED_CAST")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -828,19 +831,45 @@ fun ProblemScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 for (step in stepList) {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Text(
-                            text = step.toString(),
-                            fontSize = 16.sp,
-                            modifier = Modifier.padding(12.dp)
-                        )
+                    val stepText = step.toString()
+
+                    // ✅ Проверяем, содержит ли строка слово "фото" (в любом регистре)
+                    if (stepText.contains("фото", ignoreCase = true)) {
+                        // Показываем картинку
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.menu_ryazan),
+                                contentDescription = "Фото меню",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(250.dp)
+                                    .padding(8.dp),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                    } else {
+                        // Обычный шаг текста
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Text(
+                                text = stepText,
+                                fontSize = 16.sp,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
                     }
                 }
             }
