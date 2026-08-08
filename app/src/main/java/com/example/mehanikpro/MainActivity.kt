@@ -16,6 +16,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,6 +33,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -39,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import com.example.mehanikpro.ui.theme.MechanicAppTheme
 import org.json.JSONObject
@@ -744,7 +750,7 @@ fun MachineScreen(
 }
 
 // ============================================================
-// 7. ЭКРАН ИНСТРУКЦИИ (С КАРТИНКАМИ)
+// 7. ЭКРАН ИНСТРУКЦИИ (С КАРТИНКАМИ И УВЕЛИЧЕНИЕМ)
 // ============================================================
 @Suppress("UNCHECKED_CAST")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -771,6 +777,8 @@ fun ProblemScreen(
     } else {
         listOf("Инструкция не найдена")
     }
+
+    var showFullImage by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -833,13 +841,13 @@ fun ProblemScreen(
                 for (step in stepList) {
                     val stepText = step.toString()
 
-                    // ✅ Проверяем, содержит ли строка слово "фото" (в любом регистре)
                     if (stepText.contains("фото", ignoreCase = true)) {
-                        // Показываем картинку
+                        // Карточка с фото (кликабельная)
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp),
+                                .padding(vertical = 8.dp)
+                                .clickable { showFullImage = true },
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant
                             )
@@ -849,13 +857,13 @@ fun ProblemScreen(
                                 contentDescription = "Фото меню",
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(250.dp)
-                                    .padding(8.dp),
+                                    .height(300.dp)
+                                    .padding(8.dp)
+                                    .clip(MaterialTheme.shapes.medium),
                                 contentScale = ContentScale.Fit
                             )
                         }
                     } else {
-                        // Обычный шаг текста
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -875,17 +883,67 @@ fun ProblemScreen(
             }
 
             Text(
-                text = "📷 Здесь будет схема/фото",
+                text = "📷 Нажми на фото, чтобы увеличить и масштабировать (щипок)",
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 16.dp)
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+    }
+
+    // Диалог с фото на весь экран (с зумом жестами)
+    if (showFullImage) {
+        ZoomableImage(
+            imageRes = R.drawable.menu_ryazan,
+            onDismiss = { showFullImage = false }
+        )
+    }
+}
+
+// ============================================================
+// 8. КОМПОНЕНТ ДЛЯ ПРОСМОТРА ФОТО С ЗУМОМ
+// ============================================================
+@Composable
+fun ZoomableImage(
+    imageRes: Int,
+    onDismiss: () -> Unit
+) {
+    var scale by remember { mutableStateOf(1f) }
+    var offsetX by remember { mutableStateOf(0f) }
+    var offsetY by remember { mutableStateOf(0f) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        scale = (scale * zoom).coerceIn(0.5f, 3f)
+                        offsetX += pan.x / scale
+                        offsetY += pan.y / scale
+                    }
+                }
+                .clickable { onDismiss() }
+        ) {
+            Image(
+                painter = painterResource(id = imageRes),
+                contentDescription = "Увеличенное фото",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        translationX = offsetX
+                        translationY = offsetY
+                    },
+                contentScale = ContentScale.Fit
             )
         }
     }
 }
 
 // ============================================================
-// 8. ЭКРАН ПОИСКА (ОТДЕЛЬНЫЙ ЭКРАН)
+// 9. ЭКРАН ПОИСКА (ОТДЕЛЬНЫЙ ЭКРАН)
 // ============================================================
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1063,7 +1121,7 @@ fun SearchScreen(
 }
 
 // ============================================================
-// 9. КЛАСС ДЛЯ РЕЗУЛЬТАТОВ ПОИСКА
+// 10. КЛАСС ДЛЯ РЕЗУЛЬТАТОВ ПОИСКА
 // ============================================================
 data class SearchResult(
     val role: String,
@@ -1073,7 +1131,7 @@ data class SearchResult(
 )
 
 // ============================================================
-// 10. КАРТОЧКА РЕЗУЛЬТАТА ПОИСКА
+// 11. КАРТОЧКА РЕЗУЛЬТАТА ПОИСКА
 // ============================================================
 @Composable
 fun SearchResultCard(
