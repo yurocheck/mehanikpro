@@ -779,6 +779,7 @@ fun ProblemScreen(
     }
 
     var showFullImage by remember { mutableStateOf(false) }
+    var currentImageRes by remember { mutableStateOf(R.drawable.menu_ryazan) }
 
     Scaffold(
         topBar = {
@@ -841,20 +842,32 @@ fun ProblemScreen(
                 for (step in stepList) {
                     val stepText = step.toString()
 
-                    if (stepText.contains("фото", ignoreCase = true)) {
-                        // Карточка с фото (кликабельная)
+                    if (stepText.contains("фото", ignoreCase = true) || stepText.contains("📷", ignoreCase = true)) {
+                        // Определяем, какую картинку показывать
+                        val imageResId = when {
+                            stepText.contains("меню", ignoreCase = true) -> R.drawable.menu_ryazan
+                            // Добавьте другие картинки по аналогии:
+                            // stepText.contains("тэн", ignoreCase = true) -> R.drawable.ten
+                            // stepText.contains("схема", ignoreCase = true) -> R.drawable.shema
+                            else -> R.drawable.menu_ryazan // Картинка по умолчанию
+                        }
+                        currentImageRes = imageResId
+
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp)
-                                .clickable { showFullImage = true },
+                                .clickable {
+                                    currentImageRes = imageResId
+                                    showFullImage = true
+                                },
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                         ) {
                             Image(
-                                painter = painterResource(id = R.drawable.menu_ryazan),
-                                contentDescription = "Фото меню",
+                                painter = painterResource(id = imageResId),
+                                contentDescription = "Фото",
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(300.dp)
@@ -891,10 +904,10 @@ fun ProblemScreen(
         }
     }
 
-    // Диалог с фото на весь экран (с зумом жестами)
+    // Диалог с фото на весь экран (с зумом)
     if (showFullImage) {
         ZoomableImage(
-            imageRes = R.drawable.menu_ryazan,
+            imageRes = currentImageRes,
             onDismiss = { showFullImage = false }
         )
     }
