@@ -846,6 +846,7 @@ fun ProblemScreen(
                         // Определяем, какую картинку показывать
                         val imageResId = when {
                             stepText.contains("меню рязань", ignoreCase = true) -> R.drawable.menu_ryazan
+                            stepText.contains("температура рязань", ignoreCase = true) -> R.drawable.temp_ryazan
                             stepText.contains("тэн", ignoreCase = true) -> R.drawable.ten
                             stepText.contains("схема", ignoreCase = true) -> R.drawable.shema
                             else -> R.drawable.zaglushka
