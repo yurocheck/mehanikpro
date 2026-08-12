@@ -13,3 +13,48 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# ============================================
+# ИГНОРИРУЕМ ЛИШНИЕ ФАЙЛЫ
+# ============================================
+
+# Релизные APK (они лежат в релизах на GitHub)
+app/release/
+app/*/release/
+*.apk
+*.aab
+
+# Временные файлы Android Studio
+*.iml
+.gradle/
+.idea/
+local.properties
+*.iws
+*.ipr
+*.swp
+*~
+
+# Папки сборки
+build/
+app/build/
+captures/
+
+# Логи
+*.log
+
+# Временные изображения (скриншоты, черновики)
+*.png
+*.jpg
+*.jfif
+*.webp
+!app/src/main/res/**/*.png     # ← НЕ игнорируем картинки в drawable
+!app/src/main/res/**/*.jpg     # ← НЕ игнорируем картинки в drawable
+!app/src/main/res/**/*.webp    # ← НЕ игнорируем иконки в mipmap
+
+# Файлы пользователя
+*.jks
+keystore.properties
+
+# Системные файлы
+.DS_Store
+Thumbs.db
