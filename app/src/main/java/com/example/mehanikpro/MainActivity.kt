@@ -779,7 +779,7 @@ fun ProblemScreen(
     }
 
     var showFullImage by remember { mutableStateOf(false) }
-    var currentImageRes by remember { mutableStateOf(R.drawable.menu_ryazan) }
+    var currentImageRes by remember { mutableStateOf(R.drawable.zaglushka) }
 
     Scaffold(
         topBar = {
@@ -845,10 +845,10 @@ fun ProblemScreen(
                     if (stepText.contains("фото", ignoreCase = true) || stepText.contains("📷", ignoreCase = true)) {
                         // Определяем, какую картинку показывать
                         val imageResId = when {
-                            stepText.contains("меню рязань", ignoreCase = true) -> R.drawable.menu_ryazan
-                            stepText.contains("температура рязань", ignoreCase = true) -> R.drawable.temp_ryazan
+                            stepText.contains("меню", ignoreCase = true) -> R.drawable.menu_ryazan
                             stepText.contains("тэн", ignoreCase = true) -> R.drawable.ten
                             stepText.contains("схема", ignoreCase = true) -> R.drawable.shema
+                            stepText.contains("температура", ignoreCase = true) -> R.drawable.temp_ryazan
                             else -> R.drawable.zaglushka
                         }
                         currentImageRes = imageResId
@@ -904,7 +904,7 @@ fun ProblemScreen(
         }
     }
 
-    // Диалог с фото на весь экран (с зумом)
+    // Диалог с фото на весь экран
     if (showFullImage) {
         ZoomableImage(
             imageRes = currentImageRes,
@@ -931,11 +931,10 @@ fun ZoomableImage(
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTransformGestures { _, pan, zoom, _ ->
-                        // ✅ Убираем деление на scale — движение становится быстрым и отзывчивым
-                        offsetX += pan.x
-                        offsetY += pan.y
-                        // Зум с ограничениями
-                        scale = (scale * zoom).coerceIn(0.5f, 5f) // Можно увеличить до 5x
+                        // Быстрое движение
+                        offsetX += pan.x * 1.5f
+                        offsetY += pan.y * 1.5f
+                        scale = (scale * zoom).coerceIn(0.5f, 5f)
                     }
                 }
                 .clickable { onDismiss() }
