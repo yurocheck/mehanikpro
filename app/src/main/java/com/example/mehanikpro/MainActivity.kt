@@ -845,11 +845,10 @@ fun ProblemScreen(
                     if (stepText.contains("фото", ignoreCase = true) || stepText.contains("📷", ignoreCase = true)) {
                         // Определяем, какую картинку показывать
                         val imageResId = when {
-                            stepText.contains("меню", ignoreCase = true) -> R.drawable.menu_ryazan
-                            // Добавьте другие картинки по аналогии:
-                            // stepText.contains("тэн", ignoreCase = true) -> R.drawable.ten
-                            // stepText.contains("схема", ignoreCase = true) -> R.drawable.shema
-                            else -> R.drawable.menu_ryazan // Картинка по умолчанию
+                            stepText.contains("меню рязань", ignoreCase = true) -> R.drawable.menu_ryazan
+                            stepText.contains("тэн", ignoreCase = true) -> R.drawable.ten
+                            stepText.contains("схема", ignoreCase = true) -> R.drawable.shema
+                            else -> R.drawable.zaglushka
                         }
                         currentImageRes = imageResId
 
