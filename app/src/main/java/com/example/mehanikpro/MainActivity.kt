@@ -1,6 +1,5 @@
 package com.example.mehanikpro
 
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.app.DownloadManager
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -10,8 +9,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.widget.Toast
+import android.provider.Settings
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -26,6 +26,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -38,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,15 +48,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.mehanikpro.ui.theme.MechanicAppTheme
+import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.net.URL
-import kotlinx.coroutines.*
-import android.provider.Settings
 
 class MainActivity : ComponentActivity() {
 
@@ -370,7 +372,7 @@ fun NavigationApp() {
 }
 
 // ============================================================
-// 4. ГЛАВНЫЙ ЭКРАН (СПИСОК РАЗДЕЛОВ)
+// 4. ГЛАВНЫЙ ЭКРАН (СПИСОК РАЗДЕЛОВ) + КНОПКА "НАПИСАТЬ АВТОРУ"
 // ============================================================
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
@@ -379,6 +381,14 @@ fun MainScreen(
     onSearchClick: () -> Unit
 ) {
     val categories = factoryData["🔧 Механики"] ?: emptyMap()
+    val context = LocalContext.current
+
+    // Получаем версию приложения без BuildConfig
+    val versionName = try {
+        context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0.36"
+    } catch (e: Exception) {
+        "1.0.36"
+    }
 
     Scaffold(
         topBar = {
@@ -422,7 +432,10 @@ fun MainScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            LazyColumn {
+            // Список разделов
+            LazyColumn(
+                modifier = Modifier.weight(1f)
+            ) {
                 items(categories.keys.toList()) { category ->
                     Button(
                         onClick = { onCategoryClick(category) },
@@ -436,6 +449,46 @@ fun MainScreen(
                         Text(text = category, fontSize = 16.sp, modifier = Modifier.padding(8.dp))
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // ============================================================
+            // КНОПКА "НАПИСАТЬ АВТОРУ" (ПОЧТА)
+            // ============================================================
+            Button(
+                onClick = {
+                    val intent = Intent(Intent.ACTION_SENDTO).apply {
+                        data = Uri.parse("mailto:")
+                        putExtra(Intent.EXTRA_EMAIL, arrayOf("yuk.178@bk.ru")) // ← ЗАМЕНИТЕ НА СВОЮ ПОЧТУ
+                        putExtra(Intent.EXTRA_SUBJECT, "MehanikPRO")
+                        putExtra(
+                            Intent.EXTRA_TEXT,
+                            """
+                            Версия приложения: $versionName
+                            Модель телефона: ${Build.MODEL}
+                            Android версия: ${Build.VERSION.RELEASE}
+                            
+                            ---
+                            Напишите вашу заметку или предложение:
+                            
+                            """.trimIndent()
+                        )
+                    }
+                    context.startActivity(intent)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2196F3)
+                )
+            ) {
+                Text(
+                    text = "📩 Есть предложения или заметил ошибку - напиши разработчику",
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(8.dp)
+                )
             }
         }
     }
