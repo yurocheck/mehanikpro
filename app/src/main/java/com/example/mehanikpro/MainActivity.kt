@@ -460,7 +460,7 @@ fun MainScreen(
                 onClick = {
                     val intent = Intent(Intent.ACTION_SENDTO).apply {
                         data = Uri.parse("mailto:")
-                        putExtra(Intent.EXTRA_EMAIL, arrayOf("yuk.178@bk.ru")) // ← ЗАМЕНИТЕ НА СВОЮ ПОЧТУ
+                        putExtra(Intent.EXTRA_EMAIL, arrayOf("yuk.178@bk.ru"))
                         putExtra(Intent.EXTRA_SUBJECT, "MehanikPRO")
                         putExtra(
                             Intent.EXTRA_TEXT,
@@ -803,8 +803,24 @@ fun MachineScreen(
 }
 
 // ============================================================
-// 7. ЭКРАН ИНСТРУКЦИИ (С КАРТИНКАМИ И УВЕЛИЧЕНИЕМ)
+// 7. ЭКРАН ИНСТРУКЦИИ (С КАРТИНКАМИ И УВЕЛИЧЕНИЕМ) - ИСПРАВЛЕНО!
 // ============================================================
+
+// 🔥 НОВАЯ ФУНКЦИЯ: определяет ID картинки по тексту шага
+fun getImageResId(stepText: String): Int {
+    return when {
+        stepText.contains("меню", ignoreCase = true) -> R.drawable.menu_ryazan
+        stepText.contains("тэн", ignoreCase = true) -> R.drawable.ten
+        stepText.contains("схема", ignoreCase = true) -> R.drawable.shema
+        stepText.contains("температура", ignoreCase = true) -> R.drawable.temp_ryazan
+        stepText.contains("рязань_аварии", ignoreCase = true) -> R.drawable.ryazan_avarii
+        stepText.contains("рязань_параметр1", ignoreCase = true) -> R.drawable.ryazan_parametr1
+        stepText.contains("рязань_параметр2", ignoreCase = true) -> R.drawable.ryazan_parametr2
+        stepText.contains("рязань_параметр3", ignoreCase = true) -> R.drawable.ryazan_parametr3
+        else -> R.drawable.zaglushka
+    }
+}
+
 @Suppress("UNCHECKED_CAST")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -896,25 +912,15 @@ fun ProblemScreen(
                     val stepText = step.toString()
 
                     if (stepText.contains("фото", ignoreCase = true) || stepText.contains("📷", ignoreCase = true)) {
-                        // Определяем, какую картинку показывать
-                        val imageResId = when {
-                            stepText.contains("меню", ignoreCase = true) -> R.drawable.menu_ryazan
-                            stepText.contains("тэн", ignoreCase = true) -> R.drawable.ten
-                            stepText.contains("схема", ignoreCase = true) -> R.drawable.shema
-                            stepText.contains("температура", ignoreCase = true) -> R.drawable.temp_ryazan
-                            stepText.contains("рязань_аварии", ignoreCase = true) -> R.drawable.ryazan_avarii
-                            stepText.contains("рязань_параметр1", ignoreCase = true) -> R.drawable.ryazan_parametr1
-                            stepText.contains("рязань_параметр2", ignoreCase = true) -> R.drawable.ryazan_parametr2
-                            stepText.contains("рязань_параметр3", ignoreCase = true) -> R.drawable.ryazan_parametr3
-                            else -> R.drawable.zaglushka
-                        }
-                        currentImageRes = imageResId
+                        // 🔥 ВЫЧИСЛЯЕМ ID КАРТИНКИ ДЛЯ ЭТОГО КОНКРЕТНОГО ШАГА
+                        val imageResId = getImageResId(stepText)
 
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp)
                                 .clickable {
+                                    // 🔥 ПРИ КЛИКЕ ИСПОЛЬЗУЕМ ТОТ ЖЕ ID
                                     currentImageRes = imageResId
                                     showFullImage = true
                                 },
