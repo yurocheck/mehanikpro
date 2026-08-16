@@ -817,6 +817,8 @@ fun getImageResId(stepText: String): Int {
         stepText.contains("рязань_параметр1", ignoreCase = true) -> R.drawable.ryazan_parametr1
         stepText.contains("рязань_параметр2", ignoreCase = true) -> R.drawable.ryazan_parametr2
         stepText.contains("рязань_параметр3", ignoreCase = true) -> R.drawable.ryazan_parametr3
+        stepText.contains("новый паравоз поршень дозатор", ignoreCase = true) -> R.drawable.novpar_porsh_doza
+        stepText.contains("новый паровоз картинка", ignoreCase = true) -> R.drawable.novpar_kartinka_datch
         else -> R.drawable.zaglushka
     }
 }
