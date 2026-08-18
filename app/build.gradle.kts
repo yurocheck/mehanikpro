@@ -11,8 +11,8 @@ android {
         applicationId = "com.example.mehanikpro"
         minSdk = 24
         targetSdk = 37  // ← ИСПРАВЛЕНО (рекомендуется 37)
-        versionCode = 44
-        versionName = "1.0.43"
+        versionCode = 45
+        versionName = "1.0.44"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
